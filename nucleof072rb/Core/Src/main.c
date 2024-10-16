@@ -19,6 +19,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -44,13 +46,12 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+uint16_t handle_adc();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -64,6 +65,7 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -87,7 +89,14 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_SPI1_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+
+  // bring CS pin to high
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
+
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
   /* USER CODE END 2 */
 
@@ -95,6 +104,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	uint16_t read = handle_adc();
+
+	HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -122,6 +134,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -143,7 +156,23 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+uint16_t handle_adc() {
 
+	// transmit data
+	uint8_t trans_data[3] = {0b00000001, 0b10000000, 0b00000000}; // first byte doesn't matter, 2nd byte need to target channel 1 single, 3rd byte doesn't matter
+	// read data
+	uint8_t read_data[3];
+	// Pull CS pin to low
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
+
+	// Transmit and read
+	HAL_SPI_TransmitReceive(&hspi1, trans_data, read_data, 3, HAL_MAX_DELAY);
+
+	// Pull CS pin back to high
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
+	uint16_t read_adc = ((read_data[1] & 0b00000011) << 8 ) | read_data[2]; // get last 10 bits from read data
+	return read_adc;
+}
 /* USER CODE END 4 */
 
 /**
@@ -177,5 +206,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
