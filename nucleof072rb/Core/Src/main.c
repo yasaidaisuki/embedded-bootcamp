@@ -46,6 +46,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+const uint16_t max_adc_val = 0x3FF; // max adc val = 1023
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,8 +108,8 @@ int main(void)
 	uint16_t read = handle_adc();
 
 	// 5% <= duty cycle <= 10%
-	// cycle*0.05 + (cycle*0.1-cycle*0.05)*(adc_val/(max val of 10 bits))
-	uint16_t pwm_val = (htim1.Init.Period*0.05)+ ((htim1.Init.Period*0.05)*(read/1023));
+	// cycle*0.05 + (cycle*0.1-cycle*0.05)*(adc_val/max_adc_val)
+	uint16_t pwm_val = (htim1.Init.Period*0.05)+ ((htim1.Init.Period*0.05)*(read/max_adc_val));
 
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pwm_val);
 
@@ -165,7 +166,7 @@ void SystemClock_Config(void)
 uint16_t handle_adc() {
 
 	// transmit data
-	uint8_t trans_data[3] = {0b00000001, 0b10000000, 0b00000000}; // first byte doesn't matter, 2nd byte need to target channel 1 single, 3rd byte doesn't matter
+	uint8_t trans_data[3] = {0x01, 0x80, 0x0}; // first byte doesn't matter, 2nd byte need to target channel 1 single, 3rd byte doesn't matter
 	// read data
 	uint8_t read_data[3];
 	// Pull CS pin to low
