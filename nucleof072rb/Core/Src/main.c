@@ -106,6 +106,12 @@ int main(void)
   {
 	uint16_t read = handle_adc();
 
+	// 5% <= duty cycle <= 10%
+	// cycle*0.05 + (cycle*0.1-cycle*0.05)*(adc_val/(max val of 10 bits))
+	uint16_t pwm_val = (htim1.Init.Period*0.05)+ ((htim1.Init.Period*0.05)*(read/1023));
+
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pwm_val);
+
 	HAL_Delay(10);
     /* USER CODE END WHILE */
 
@@ -171,6 +177,7 @@ uint16_t handle_adc() {
 	// Pull CS pin back to high
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
 	uint16_t read_adc = ((read_data[1] & 0b00000011) << 8 ) | read_data[2]; // get last 10 bits from read data
+
 	return read_adc;
 }
 /* USER CODE END 4 */
